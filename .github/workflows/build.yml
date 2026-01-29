@@ -1,0 +1,59 @@
+name: Build NativePHP App
+
+on:
+  push:
+    tags:
+      - 'v*' # Se déclenche quand tu crées un tag (ex: v1.0.0)
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        # On lance 3 serveurs en parallèle : un Windows, un Ubuntu (Linux), un Mac
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mbstring, xml, ctype, iconv, intl, pdo_sqlite
+          coverage: none
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install PHP dependencies
+        run: composer install --no-interaction --prefer-dist --optimize-autoloader
+
+      - name: Install JS dependencies
+        run: npm install
+
+      - name: Build NativePHP App
+        env:
+          # On passe la clé de l'app pour éviter les erreurs de chiffrement
+          APP_KEY: ${{ secrets.APP_KEY }} 
+        run: |
+          # On détecte l'OS pour lancer la bonne commande de build
+          if [ "$RUNNER_OS" == "Windows" ]; then
+            php artisan native:build windows
+          elif [ "$RUNNER_OS" == "macOS" ]; then
+            php artisan native:build mac
+          else
+            php artisan native:build linux
+          fi
+        shell: bash
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-${{ matrix.os }}
+          path: dist/*
