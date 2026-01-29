@@ -1,0 +1,22 @@
+{
+  "menu": [
+    {
+      "name": "Accueil",
+      "icon": "menu-icon tf-icons ti ti-smart-home",
+      "slug": "home",
+      "url": "/"
+    },
+    {
+      "name": "Calendrier",
+      "icon": "menu-icon tf-icons ti ti-calendar",
+      "slug": "calendar",
+      "url": "calendar"
+    },
+    {
+      "name": "Voir Infos",
+      "icon": "menu-icon tf-icons ti ti-info-circle",
+      "slug": "info",
+      "url": "info"
+    }
+  ]
+}

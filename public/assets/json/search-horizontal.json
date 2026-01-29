@@ -1,0 +1,21 @@
+{
+  "pages": [
+    {
+      "name": "Accueil",
+      "icon": "ti-smart-home",
+      "url": "/"
+    },
+    {
+      "name": "Calendrier",
+      "icon": "ti-calendar",
+      "url": "calendar"
+    },
+    {
+      "name": "Voir Infos",
+      "icon": "ti-info-circle",
+      "url": "info"
+    }
+  ],
+  "files": [],
+  "members": []
+}
