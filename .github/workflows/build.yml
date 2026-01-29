@@ -1,60 +1,126 @@
-name: Build NativePHP App
+name: Build Application (All Platforms)
 
 on:
   push:
-    tags:
-      - 'v*' # Se déclenche quand tu crées un tag (ex: v1.0.0)
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
 
 jobs:
-  build:
-    runs-on: ${{ matrix.os }}
-
-    strategy:
-      fail-fast: false
-      matrix:
-        # On lance 3 serveurs en parallèle : un Windows, un Ubuntu (Linux), un Mac
-        os: [ubuntu-latest, windows-latest, macos-latest]
-
+  # ==========================================
+  # JOB 1 : LINUX
+  # ==========================================
+  build-linux:
+    runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+    - uses: actions/checkout@v4
+    
+    - name: Setup PHP 8.3 (Linux)
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.3'   # <--- Mis à jour en 8.3
+        extensions: mbstring, fileinfo, zip, curl, pdo, sqlite, pdo_sqlite, gd, intl, dom, libxml
+        coverage: none
 
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.3'
-          # C'EST ICI LA CORRECTION : On ajoute fileinfo et zip explicitement
-          extensions: mbstring, bcmath, fileinfo, zip, curl, pdo, sqlite, pdo_sqlite, gd, intl
-          coverage: none
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
+    - name: Install Linux Build Dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libfuse2 flatpak-builder build-essential libssl-dev icnsutils graphicsmagick
 
-      - name: Install PHP dependencies
-        run: composer install --no-interaction --prefer-dist --optimize-autoloader
+    - name: Install Dependencies
+      run: |
+        composer install -q --no-ansi --no-interaction --no-scripts --no-progress --prefer-dist
+        npm ci && npm run build
 
-      - name: Install JS dependencies
-        run: npm install
+    - name: Build Linux
+      run: |
+        cp .env.example .env
+        php artisan key:generate
+        php artisan native:build linux
 
-      - name: Build NativePHP App
-        env:
-          # On passe la clé de l'app pour éviter les erreurs de chiffrement
-          APP_KEY: ${{ secrets.APP_KEY }} 
-        run: |
-          # On détecte l'OS pour lancer la bonne commande de build
-          if [ "$RUNNER_OS" == "Windows" ]; then
-            php artisan native:build windows
-          elif [ "$RUNNER_OS" == "macOS" ]; then
-            php artisan native:build mac
-          else
-            php artisan native:build linux
-          fi
-        shell: bash
+    - name: Upload Linux Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: denasial-linux-deb
+        path: dist/*.deb
 
-      - name: Upload Artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-${{ matrix.os }}
-          path: dist/*
+  # ==========================================
+  # JOB 2 : WINDOWS
+  # ==========================================
+  build-win:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup PHP 8.3 (Windows)
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.3'   # <--- Mis à jour en 8.3
+        # Les extensions vitales pour Windows sont ici :
+        extensions: mbstring, fileinfo, zip, curl, pdo, sqlite, pdo_sqlite, gd, intl, openssl
+        coverage: none
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    - name: Install Dependencies
+      run: |
+        composer install -q --no-ansi --no-interaction --no-scripts --no-progress --prefer-dist
+        npm ci && npm run build
+
+    - name: Build Windows
+      run: |
+        copy .env.example .env
+        php artisan key:generate
+        php artisan native:build win
+
+    - name: Upload Windows Exe
+      uses: actions/upload-artifact@v4
+      with:
+        name: denasial-windows-setup
+        path: dist/*.exe
+
+  # ==========================================
+  # JOB 3 : MAC
+  # ==========================================
+  build-mac:
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup PHP 8.3 (Mac)
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.3'   # <--- Mis à jour en 8.3
+        extensions: mbstring, fileinfo, zip, curl, pdo, sqlite, pdo_sqlite, gd, intl
+        coverage: none
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    - name: Install Dependencies
+      run: |
+        composer install -q --no-ansi --no-interaction --no-scripts --no-progress --prefer-dist
+        npm ci && npm run build
+
+    - name: Build Mac
+      run: |
+        cp .env.example .env
+        php artisan key:generate
+        php artisan native:build mac
+
+    - name: Upload Mac DMG
+      uses: actions/upload-artifact@v4
+      with:
+        name: denasial-mac-dmg
+        path: dist/*.dmg
