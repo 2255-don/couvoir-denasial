@@ -9,7 +9,7 @@ on:
 
 jobs:
   # ==========================================
-  # JOB 1 : LINUX (Ubuntu)
+  # JOB 1 : LINUX
   # ==========================================
   build-linux:
     runs-on: ubuntu-latest
@@ -44,14 +44,19 @@ jobs:
         php artisan key:generate
         php artisan native:build linux
 
+    # DEBUG : On affiche la liste des fichiers créés pour comprendre
+    - name: List Build Output
+      run: ls -R dist/
+
+    # CORRECTION : On prend TOUT le dossier dist
     - name: Upload Linux Artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: denasial-linux-deb
-        path: dist/*.deb
+        name: denasial-linux-all
+        path: dist/
 
   # ==========================================
-  # JOB 2 : WINDOWS (C'est ici qu'on corrige)
+  # JOB 2 : WINDOWS
   # ==========================================
   build-win:
     runs-on: windows-latest
@@ -62,7 +67,6 @@ jobs:
       uses: shivammathur/setup-php@v2
       with:
         php-version: '8.3'
-        # On demande les extensions, mais si ça échoue, la commande composer ci-dessous prendra le relais
         extensions: mbstring, fileinfo, zip, curl, pdo, sqlite, pdo_sqlite, gd, intl, openssl
         coverage: none
 
@@ -71,7 +75,6 @@ jobs:
       with:
         node-version: '20'
 
-    # 👇 LA CORRECTION EST ICI : On ajoute --ignore-platform-req
     - name: Install Dependencies (Windows Force)
       run: |
         composer install -q --no-ansi --no-interaction --no-scripts --no-progress --prefer-dist --ignore-platform-req=ext-fileinfo --ignore-platform-req=ext-zip
@@ -83,14 +86,19 @@ jobs:
         php artisan key:generate
         php artisan native:build win
 
-    - name: Upload Windows Exe
+    # DEBUG : Affiche les fichiers
+    - name: List Build Output
+      run: dir dist
+
+    # CORRECTION : On prend TOUT le dossier dist
+    - name: Upload Windows Artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: denasial-windows-setup
-        path: dist/*.exe
+        name: denasial-windows-all
+        path: dist/
 
   # ==========================================
-  # JOB 3 : MAC (MacOS)
+  # JOB 3 : MAC
   # ==========================================
   build-mac:
     runs-on: macos-latest
@@ -120,8 +128,9 @@ jobs:
         php artisan key:generate
         php artisan native:build mac
 
-    - name: Upload Mac DMG
+    # CORRECTION : On prend TOUT le dossier dist
+    - name: Upload Mac Artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: denasial-mac-dmg
-        path: dist/*.dmg
+        name: denasial-mac-all
+        path: dist/
