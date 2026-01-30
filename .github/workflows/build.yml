@@ -1,81 +1,25 @@
-name: Build Application (All Platforms)
+name: Build Universal Search
 
-on:
-  push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
-  workflow_dispatch:
+on: [push, workflow_dispatch]
 
 jobs:
-  # ==========================================
-  # JOB 1 : LINUX
-  # ==========================================
-  build-linux:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v4
-    
-    - name: Setup PHP 8.3 (Linux)
-      uses: shivammathur/setup-php@v2
-      with:
-        php-version: '8.3'
-        extensions: mbstring, fileinfo, zip, curl, pdo, sqlite, pdo_sqlite, gd, intl, dom, libxml
-        coverage: none
-
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20'
-
-    - name: Install Linux Build Dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y libfuse2 flatpak-builder build-essential libssl-dev icnsutils graphicsmagick
-
-    - name: Install Dependencies
-      run: |
-        composer install -q --no-ansi --no-interaction --no-scripts --no-progress --prefer-dist
-        npm ci && npm run build
-
-    - name: Build Linux
-      run: |
-        cp .env.example .env
-        php artisan key:generate
-        php artisan native:build linux
-
-    # DEBUG : On affiche la liste des fichiers créés pour comprendre
-    - name: List Build Output
-      run: ls -R dist/
-
-    # CORRECTION : On prend TOUT le dossier dist
-    - name: Upload Linux Artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: denasial-linux-all
-        path: dist/
-
-  # ==========================================
-  # JOB 2 : WINDOWS
-  # ==========================================
   build-win:
     runs-on: windows-latest
     steps:
     - uses: actions/checkout@v4
 
-    - name: Setup PHP 8.3 (Windows)
+    - name: Setup PHP 8.3
       uses: shivammathur/setup-php@v2
       with:
         php-version: '8.3'
         extensions: mbstring, fileinfo, zip, curl, pdo, sqlite, pdo_sqlite, gd, intl, openssl
-        coverage: none
 
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
         node-version: '20'
 
-    - name: Install Dependencies (Windows Force)
+    - name: Install Dependencies
       run: |
         composer install -q --no-ansi --no-interaction --no-scripts --no-progress --prefer-dist --ignore-platform-req=ext-fileinfo --ignore-platform-req=ext-zip
         npm ci && npm run build
@@ -84,53 +28,20 @@ jobs:
       run: |
         copy .env.example .env
         php artisan key:generate
-        php artisan native:build win
+        # On ajoute -v pour voir les détails si ça plante
+        php artisan native:build win -v
 
-    # DEBUG : Affiche les fichiers
-    - name: List Build Output
-      run: dir dist
+    # C'EST ICI LA MAGIE : On cherche le .exe partout !
+    - name: 🔎 FIND THE EXE (Recherche fichier)
+      run: |
+        echo "Recherche du fichier .exe sur tout le disque..."
+        Get-ChildItem -Path . -Recurse -Filter *.exe | ForEach-Object { $_.FullName }
 
-    # CORRECTION : On prend TOUT le dossier dist
-    - name: Upload Windows Artifacts
+    # On essaie de récupérer le fichier là où tu as dit qu'il était
+    - name: Upload Artifact (Backup Path)
+      if: always()
       uses: actions/upload-artifact@v4
       with:
-        name: denasial-windows-all
-        path: dist/
-
-  # ==========================================
-  # JOB 3 : MAC
-  # ==========================================
-  build-mac:
-    runs-on: macos-latest
-    steps:
-    - uses: actions/checkout@v4
-
-    - name: Setup PHP 8.3 (Mac)
-      uses: shivammathur/setup-php@v2
-      with:
-        php-version: '8.3'
-        extensions: mbstring, fileinfo, zip, curl, pdo, sqlite, pdo_sqlite, gd, intl
-        coverage: none
-
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20'
-
-    - name: Install Dependencies
-      run: |
-        composer install -q --no-ansi --no-interaction --no-scripts --no-progress --prefer-dist
-        npm ci && npm run build
-
-    - name: Build Mac
-      run: |
-        cp .env.example .env
-        php artisan key:generate
-        php artisan native:build mac
-
-    # CORRECTION : On prend TOUT le dossier dist
-    - name: Upload Mac Artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: denasial-mac-all
-        path: dist/
+        name: denasial-windows-found
+        # On prend tout ce qui ressemble à un setup.exe, où que ce soit
+        path: '**/*.exe'
