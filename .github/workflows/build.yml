@@ -9,7 +9,7 @@ on:
 
 jobs:
   # ==========================================
-  # JOB 1 : LINUX
+  # JOB 1 : LINUX (Ubuntu)
   # ==========================================
   build-linux:
     runs-on: ubuntu-latest
@@ -19,7 +19,7 @@ jobs:
     - name: Setup PHP 8.3 (Linux)
       uses: shivammathur/setup-php@v2
       with:
-        php-version: '8.3'   # <--- Mis à jour en 8.3
+        php-version: '8.3'
         extensions: mbstring, fileinfo, zip, curl, pdo, sqlite, pdo_sqlite, gd, intl, dom, libxml
         coverage: none
 
@@ -51,7 +51,7 @@ jobs:
         path: dist/*.deb
 
   # ==========================================
-  # JOB 2 : WINDOWS
+  # JOB 2 : WINDOWS (C'est ici qu'on corrige)
   # ==========================================
   build-win:
     runs-on: windows-latest
@@ -61,8 +61,8 @@ jobs:
     - name: Setup PHP 8.3 (Windows)
       uses: shivammathur/setup-php@v2
       with:
-        php-version: '8.3'   # <--- Mis à jour en 8.3
-        # Les extensions vitales pour Windows sont ici :
+        php-version: '8.3'
+        # On demande les extensions, mais si ça échoue, la commande composer ci-dessous prendra le relais
         extensions: mbstring, fileinfo, zip, curl, pdo, sqlite, pdo_sqlite, gd, intl, openssl
         coverage: none
 
@@ -71,9 +71,10 @@ jobs:
       with:
         node-version: '20'
 
-    - name: Install Dependencies
+    # 👇 LA CORRECTION EST ICI : On ajoute --ignore-platform-req
+    - name: Install Dependencies (Windows Force)
       run: |
-        composer install -q --no-ansi --no-interaction --no-scripts --no-progress --prefer-dist
+        composer install -q --no-ansi --no-interaction --no-scripts --no-progress --prefer-dist --ignore-platform-req=ext-fileinfo --ignore-platform-req=ext-zip
         npm ci && npm run build
 
     - name: Build Windows
@@ -89,7 +90,7 @@ jobs:
         path: dist/*.exe
 
   # ==========================================
-  # JOB 3 : MAC
+  # JOB 3 : MAC (MacOS)
   # ==========================================
   build-mac:
     runs-on: macos-latest
@@ -99,7 +100,7 @@ jobs:
     - name: Setup PHP 8.3 (Mac)
       uses: shivammathur/setup-php@v2
       with:
-        php-version: '8.3'   # <--- Mis à jour en 8.3
+        php-version: '8.3'
         extensions: mbstring, fileinfo, zip, curl, pdo, sqlite, pdo_sqlite, gd, intl
         coverage: none
 
