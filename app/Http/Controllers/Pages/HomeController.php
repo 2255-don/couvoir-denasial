@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Auth;
 
 class HomeController extends Controller
 {
-    public function index()
+    public function index(\App\Services\HatcheryService $hatcheryService)
     {
         $user = Auth::user();
         $user->loadCount(['units as incubator_count' => function($q) {
@@ -29,6 +29,8 @@ class HomeController extends Controller
             ->with('currentUnit')
             ->get();
 
-        return view('pages.home.index', compact('user', 'incubatorBatches', 'hatcherBatches'));
+        $nextRemplissages = $hatcheryService->getNextIncubatorAvailability($user->id);
+
+        return view('pages.home.index', compact('user', 'incubatorBatches', 'hatcherBatches', 'nextRemplissages'));
     }
 }

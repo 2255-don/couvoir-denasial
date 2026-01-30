@@ -25,4 +25,6 @@ Route::middleware('auth')->group(function () {
     // Profile Routes
     Route::get('/profile', [\App\Http\Controllers\Pages\ProfileController::class, 'index'])->name('profile.index');
     Route::post('/profile', [\App\Http\Controllers\Pages\ProfileController::class, 'update'])->name('profile.update');
+    Route::post('/units/{unit}/quick-fill', [\App\Http\Controllers\Pages\BatchController::class, 'quickFill'])->name('units.quick-fill');
+
 });
